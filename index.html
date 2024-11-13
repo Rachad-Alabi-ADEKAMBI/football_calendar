@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue.js Calendar</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .calendar {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .month-year {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .nav-button {
+            background-color: transparent;
+            border: 1px solid #7E57C2;
+            color: #7E57C2;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-button:hover {
+            background-color: #7E57C2;
+            color: white;
+        }
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 16px;
+        }
+        .day-name {
+            font-weight: 500;
+            color: #666;
+            text-align: center;
+        }
+        .day-button {
+            background-color: transparent;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .day-button:hover {
+            background-color: #e0e0e0;
+        }
+        .day-button.today {
+            background-color: #FFCA28;
+            color: #333;
+            font-weight: bold;
+        }
+        .day-button.selected {
+            background-color: #7E57C2;
+            color: white;
+            font-weight: bold;
+        }
+        .day-button.other-month {
+            color: #ccc;
+        }
+        .selected-date {
+            text-align: center;
+            padding: 16px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            color: #7E57C2;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="calendar">
+            <div class="header">
+                <h2 class="month-year">{{ currentMonthYear }}</h2>
+                <div>
+                    <button @click="goToPreviousMonth" class="nav-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <button @click="goToNextMonth" class="nav-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="days-grid">
+                <div v-for="day in daysOfWeek" :key="day" class="day-name">
+                    {{ day }}
+                </div>
+                <button
+                    v-for="day in monthDays"
+                    :key="day.toISOString()"
+                    @click="handleDateClick(day)"
+                    :class="[
+                        'day-button',
+                        !isSameMonth(day, currentDate) ? 'other-month' : '',
+                        isToday(day) ? 'today' : '',
+                        selectedDate && isSameDay(day, selectedDate) ? 'selected' : ''
+                    ]"
+                >
+                    {{ day.getDate() }}
+                </button>
+            </div>
+            <div class="selected-date">
+                {{ selectedDateText }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue
+
+        createApp({
+            setup() {
+                const currentDate = ref(new Date())
+                const selectedDate = ref(null)
+
+                const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+                const currentMonthYear = computed(() => {
+                    const options = { month: 'long', year: 'numeric' }
+                    return currentDate.value.toLocaleDateString('en-US', options)
+                })
+
+                const monthDays = computed(() => {
+                    const year = currentDate.value.getFullYear()
+                    const month = currentDate.value.getMonth()
+                    const firstDay = new Date(year, month, 1)
+                    const lastDay = new Date(year, month + 1, 0)
+                    const days = []
+
+                    // Add days from previous month
+                    const daysFromPrevMonth = firstDay.getDay()
+                    for (let i = daysFromPrevMonth; i > 0; i--) {
+                        days.push(new Date(year, month, -i + 1))
+                    }
+
+                    // Add days of current month
+                    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                        days.push(new Date(d))
+                    }
+
+                    // Add days from next month
+                    const daysFromNextMonth = 42 - days.length
+                    for (let i = 1; i <= daysFromNextMonth; i++) {
+                        days.push(new Date(year, month + 1, i))
+                    }
+
+                    return days
+                })
+
+                const selectedDateText = computed(() => {
+                    if (selectedDate.value) {
+                        return `Selected: ${formatDate(selectedDate.value)}`
+                    } else {
+                        return `Today: ${formatDate(new Date())}`
+                    }
+                })
+
+                const goToPreviousMonth = () => {
+                    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
+                }
+
+                const goToNextMonth = () => {
+                    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+                }
+
+                const handleDateClick = (day) => {
+                    selectedDate.value = isSameDay(selectedDate.value, day) ? null : day
+                }
+
+                function isSameMonth(date1, date2) {
+                    return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth()
+                }
+
+                function isSameDay(date1, date2) {
+                    return date1 && date2 && 
+                        date1.getFullYear() === date2.getFullYear() &&
+                        date1.getMonth() === date2.getMonth() &&
+                        date1.getDate() === date2.getDate()
+                }
+
+                function isToday(date) {
+                    const today = new Date()
+                    return isSameDay(date, today)
+                }
+
+                function formatDate(date) {
+                    const options = { month: 'long', day: 'numeric', year: 'numeric' }
+                    return date.toLocaleDateString('en-US', options)
+                }
+
+                return {
+                    currentDate,
+                    selectedDate,
+                    daysOfWeek,
+                    currentMonthYear,
+                    monthDays,
+                    selectedDateText,
+                    goToPreviousMonth,
+                    goToNextMonth,
+                    handleDateClick,
+                    isSameMonth,
+                    isSameDay,
+                    isToday
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
