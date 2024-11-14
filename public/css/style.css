@@ -100,4 +100,19 @@ body {
   border-top: 1px solid #e0e0e0;
   color: #7E57C2;
   font-weight: 500;
+}
+
+.event {
+  width: 90%;
+  height: 90px;
+  border-bottom: 15px;
+  border: 1px solid white;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 5px;
+  background-color: yellow;
+}
+.event__details {
+  display: block;
 }/*# sourceMappingURL=style.css.map */
